@@ -9,13 +9,16 @@
         aggregate:
           - name: admin
             privilege: 15
-            secret: "admin123"
+            configured_password: "admin123"
+            password_type: secret  # Type 5 (MD5) password
             state: present
           - name: network_operator
             privilege: 1
-            secret: "operator123"
+            configured_password: "operator123"
+            password_type: secret  # Type 5 (MD5) password
             state: present
         state: present
+        update_password: always  # အမြဲ password update လုပ်မယ်
 
     - name: Show local users
       cisco.ios.ios_command:
