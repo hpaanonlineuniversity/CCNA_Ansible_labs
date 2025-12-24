@@ -1,0 +1,35 @@
+---
+- name: Network Device Health Check
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Check CPU utilization
+      cisco.ios.ios_command:
+        commands:
+          - show processes cpu sorted | include CPU
+      register: cpu_info
+
+    - name: Display CPU utilization
+      debug:
+        msg: "{{ cpu_info.stdout_lines }}"
+
+    - name: Check memory usage
+      cisco.ios.ios_command:
+        commands:
+          - show memory statistics
+      register: memory_info
+
+    - name: Display memory information
+      debug:
+        msg: "{{ memory_info.stdout_lines }}"
+
+    - name: Check interface status
+      cisco.ios.ios_command:
+        commands:
+          - show interfaces status
+      register: interface_info
+
+    - name: Display interface status
+      debug:
+        msg: "{{ interface_info.stdout_lines }}"

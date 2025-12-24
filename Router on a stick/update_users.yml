@@ -1,0 +1,28 @@
+---
+- name: Update Device User Accounts
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Add new user account
+      cisco.ios.ios_user:
+        aggregate:
+          - name: admin
+            privilege: 15
+            secret: "admin123"
+            state: present
+          - name: network_operator
+            privilege: 1
+            secret: "operator123"
+            state: present
+        state: present
+
+    - name: Show local users
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include username
+      register: user_info
+
+    - name: Display user accounts
+      debug:
+        msg: "{{ user_info.stdout_lines }}"
