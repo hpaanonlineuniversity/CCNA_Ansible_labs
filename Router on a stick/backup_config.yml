@@ -1,27 +1,23 @@
+# backup_config_simple.yml
 ---
-- name: Backup Network Device Configurations
-  hosts: routers,switches
+- name: Backup Cisco Router Configurations
+  hosts: all
   gather_facts: no
-
-  vars:
-    backup_dir: "./backups"
-
+  
   tasks:
-    - name: Create backup directory if not exists
-      file:
-        path: "{{ backup_dir }}"
-        state: directory
-      delegate_to: localhost
-      run_once: yes
-
-    - name: Show running configuration
+    - name: Get running configuration
       cisco.ios.ios_command:
         commands:
           - show running-config
       register: config
-
+    
+    - name: Create backups directory
+      file:
+        path: ./backups
+        state: directory
+        mode: '0755'
+    
     - name: Save configuration to file
       copy:
         content: "{{ config.stdout[0] }}"
-        dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{ ansible_date_time.date }}.cfg"
-      delegate_to: localhost
+        dest: "./backups/{{ inventory_hostname }}.cfg"
