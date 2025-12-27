@@ -62,8 +62,8 @@ transport input ssh
 login local
 end
 
-
 write memory
+
 
 ==============================================================================
 
@@ -127,7 +127,6 @@ transport input ssh
 login local
 end
 
-
 write memory
 
 
@@ -143,8 +142,9 @@ no shutdown
 exit
 ip route 0.0.0.0 0.0.0.0 10.1.99.2
 
-
 do write
+
+
 ==============================================================================
 
 L3SW1_CoreSwitch
@@ -157,8 +157,6 @@ ip address 10.1.99.9 255.255.255.252
 no shutdown
 exit
 ip route 0.0.0.0 0.0.0.0 10.1.99.10
-
-
 
 do write
 
@@ -208,6 +206,7 @@ transport input ssh
 login local
 end
 
-
 write memory
+
+
 
