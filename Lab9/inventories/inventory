@@ -1,6 +1,7 @@
 [routers]
 R1 ansible_host=192.168.101.1
 R2 ansible_host=192.168.101.7
+R3 ansible_host=192.168.101.9
 
 [switches]
 SW1 ansible_host=192.168.101.2
