@@ -181,7 +181,6 @@ ip address 10.1.99.6 255.255.255.252
 no shutdown
 
 interface G 0/3
-no switchport
 ip address 10.1.99.10 255.255.255.252
 no shutdown
 exit
@@ -207,6 +206,9 @@ login local
 end
 
 write memory
+
+
+
 
 
 
