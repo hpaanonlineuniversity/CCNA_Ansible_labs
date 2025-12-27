@@ -1,0 +1,21 @@
+[routers]
+R1 ansible_host=192.168.101.1
+R2 ansible_host=192.168.101.7
+
+[switches]
+SW1 ansible_host=192.168.101.2
+L3SW1_CoreSwitch ansible_host=192.168.101.3
+SW2 ansible_host=192.168.101.4
+SW3 ansible_host=192.168.101.5
+SW4 ansible_host=192.168.101.6
+SW5 ansible_host=192.168.101.8
+
+[all:vars]
+ansible_connection=network_cli
+ansible_network_os=ios
+ansible_user=devops
+ansible_password=devops
+ansible_become=yes
+ansible_become_method=enable
+ansible_become_password=devops
+
