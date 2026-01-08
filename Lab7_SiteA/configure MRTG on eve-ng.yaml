@@ -18,21 +18,6 @@ mkdir -p /var/www/html/mrtg
 chmod 755 /var/www/html/mrtg
 chown www-data:www-data /var/www/html/mrtg
 
-# First run (error တချို့ပေါ်နိုင်ပါတယ်၊ normal ပါ)
-env LANG=C mrtg /etc/mrtg/mrtg.cfg
-
-# Second run
-env LANG=C mrtg /etc/mrtg/mrtg.cfg
-
-# Third run
-env LANG=C mrtg /etc/mrtg/mrtg.cfg
-
-# Crontab edit
-crontab -e
-
-# အောက်ပါ line ထည့်ပါ (၅ မိနစ်တစ်ခါ run)
-*/5 * * * * env LANG=C /usr/bin/mrtg /etc/mrtg/mrtg.cfg
-
 
 ===============================================================================
 
