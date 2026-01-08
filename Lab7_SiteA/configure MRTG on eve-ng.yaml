@@ -1,0 +1,143 @@
+EVE-NG မှာ MRTG Install လုပ်နည်း Draft version
+
+
+# Update package list
+apt-get update
+
+# MRTG နှင့် dependencies တွေ install လုပ်ပါ
+apt-get install mrtg snmp snmpd -y
+
+# rrdtool install (graphs အတွက်)
+apt-get install rrdtool librrds-perl -y
+
+
+# MRTG အတွက် directory လုပ်ပါ
+mkdir -p /var/www/html/mrtg
+
+# Permissions ပေးပါ
+chmod 755 /var/www/html/mrtg
+chown www-data:www-data /var/www/html/mrtg
+
+# First run (error တချို့ပေါ်နိုင်ပါတယ်၊ normal ပါ)
+env LANG=C mrtg /etc/mrtg/mrtg.cfg
+
+# Second run
+env LANG=C mrtg /etc/mrtg/mrtg.cfg
+
+# Third run
+env LANG=C mrtg /etc/mrtg/mrtg.cfg
+
+# Crontab edit
+crontab -e
+
+# အောက်ပါ line ထည့်ပါ (၅ မိနစ်တစ်ခါ run)
+*/5 * * * * env LANG=C /usr/bin/mrtg /etc/mrtg/mrtg.cfg
+
+
+===============================================================================
+
+
+configure terminal
+
+snmp-server community mrtgmon RO
+snmp-server ifindex persist
+snmp-server location "EVE-NG Lab"
+snmp-server contact admin@example.com
+
+access-list 10 permit 192.168.101.0 0.0.0.255
+snmp-server community mrtgmon RO 10
+end
+write memory
+
+=====================================================================================
+configure terminal
+
+snmp-server community mrtgmon RO
+snmp-server ifindex persist
+snmp-server location "EVE-NG Lab Switch"
+
+end
+write memory
+
+=================================
+# For MRTG
+
+# 1. New port (8080) အတွက် Apache virtual host ဖန်တီးပါ
+cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/mrtg.conf
+
+# 2. MRTG config file edit
+nano /etc/apache2/sites-available/mrtg.conf
+
+
+# MRTG VirtualHost configuration (port 8080)
+<VirtualHost *:8080>
+    ServerAdmin admin@eve-ng
+    DocumentRoot /var/www/html/mrtg
+    
+    <Directory "/var/www/html/mrtg">
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride None
+        Require all granted
+    </Directory>
+    
+    ErrorLog ${APACHE_LOG_DIR}/mrtg_error.log
+    CustomLog ${APACHE_LOG_DIR}/mrtg_access.log combined
+</VirtualHost>
+
+
+
+========================================================================
+
+
+# 3. Port 8080 enable လုပ်ပါ
+echo "Listen 8080" >> /etc/apache2/ports.conf
+
+# 4. MRTG site enable လုပ်ပါ
+a2ensite mrtg.conf
+
+# 5. Apache restart
+systemctl restart apache2
+
+
+===========================================================================
+
+# 3. Port 8080 enable လုပ်ပါ
+echo "Listen 8080" >> /etc/apache2/ports.conf
+
+# 4. MRTG site enable လုပ်ပါ
+a2ensite mrtg.conf
+
+# 5. Apache restart
+systemctl restart apache2
+
+====================================================================
+
+
+
+# R1 Router ကို monitoring
+cfgmaker --global 'WorkDir: /var/www/html/mrtg' \
+         --global 'Options[_]: bits,growright' \
+         --global 'Language: english' \
+         --ifref=ip \
+         --ifdesc=descr \
+         --output /etc/mrtg/r1.cfg \
+         mrtgmon@192.168.101.1
+
+# SW1 Switch ကို monitoring
+cfgmaker --global 'WorkDir: /var/www/html/mrtg' \
+         --global 'Options[_]: bits,growright' \
+         --global 'Language: english' \
+         --ifref=ip \
+         --ifdesc=descr \
+         --output /etc/mrtg/sw1.cfg \
+         mrtgmon@192.168.101.2
+
+# Combine both configs
+cat /etc/mrtg/r1.cfg /etc/mrtg/sw1.cfg > /etc/mrtg/mrtg.cfg
+
+=====================================================================================================
+
+# Index page generate ပြန်လုပ်ပါ
+indexmaker --output=/var/www/html/mrtg/index.html \
+           /etc/mrtg/mrtg.cfg
+====================================================================================================
