@@ -3,6 +3,10 @@
 hostname: R3
 router_id: 3.3.3.3
 
+loopback1:
+  - network: 192.169.3.1
+    mask: 255.255.255.0
+
 # Interfaces requiring OSPF authentication
 ospf_auth_interfaces:
   - GigabitEthernet0/3
@@ -13,16 +17,6 @@ ospf_interfaces:
     description: "Link from R3 to R1"
     ip_address: 13.13.13.2
     prefix: 30
-
-  - interface: Loopback0
-    description: "For Router_id"
-    ip_address: 3.3.3.3
-    prefix: 32
-
-  - interface: Loopback1
-    description: "For internal network"
-    ip_address: 192.169.3.1
-    prefix: 24
 
 # Networks to advertise in OSPF
 ospf_advertised_interfaces:

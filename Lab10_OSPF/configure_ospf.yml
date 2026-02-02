@@ -11,6 +11,24 @@
           - router_id is defined
           - ospf_process_id is defined
         fail_msg: "Missing required OSPF variables"
+    
+    - name: Configure Loopback0
+      cisco.ios.ios_config:
+        lines:
+          - "interface loopback0"
+          - "ip address {{ router_id }} 255.255.255.255"
+          - "description OSPF Router ID"
+          - "exit"
+    
+    - name: Configure Loopback1
+      cisco.ios.ios_config:
+        lines:
+          - "interface loopback1"
+          - "ip address {{ item.ip_address }} {{ item.prefix | ipaddr('netmask') }}"
+          - "description For internal network"
+          - "exit"
+      loop: "{{ loopback1 }}"
+      when: loopback1 is defined    
 
     # Task 2: Configure IP addresses on interfaces
     - name: Configure IP addresses on interfaces

@@ -3,6 +3,10 @@
 hostname: R1
 router_id: 1.1.1.1
 
+loopback1:
+  - network: 192.169.1.1
+    mask: 255.255.255.0
+
 # Interfaces requiring OSPF authentication
 ospf_auth_interfaces:
   - GigabitEthernet0/2
@@ -33,16 +37,6 @@ ospf_interfaces:
     ip_address: 15.15.15.1
     prefix: 30
   
-  - interface: Loopback0
-    description: "For Router_id"
-    ip_address: 1.1.1.1
-    prefix: 32
-
-  - interface: Loopback1
-    description: "For internal network"
-    ip_address: 192.169.1.1
-    prefix: 24
-
 # Networks to advertise in OSPF
 ospf_advertised_interfaces:
   - network: 12.12.12.1
