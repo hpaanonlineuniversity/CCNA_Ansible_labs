@@ -25,7 +25,7 @@
 
     # Task 3: Configure OSPF Process
     - name: Configure OSPF process and router ID
-      ios_ospf:
+      ios_ospfv2:
         config:
           - processes:
             - id: "{{ ospf_process_id }}"
