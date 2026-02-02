@@ -62,7 +62,8 @@
     - name: Configure OSPF passive interfaces
       cisco.ios.ios_config:
         lines:
+          - "router ospf {{ ospf_process_id }}"
           - "passive-interface {{ item }}"
-        parents: "router ospf {{ ospf_process_id }}"
+          - "exit"
       loop: "{{ ospf_passive_interfaces }}"
       when: ospf_passive_interfaces is defined
