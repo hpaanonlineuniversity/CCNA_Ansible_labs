@@ -4,7 +4,7 @@ hostname: R1
 router_id: 1.1.1.1
 
 loopback1:
-  - network: 192.169.1.1
+  - ip_address: 192.169.1.1
     mask: 255.255.255.0
 
 # Interfaces requiring OSPF authentication

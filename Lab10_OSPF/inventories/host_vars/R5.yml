@@ -4,7 +4,7 @@ hostname: R5
 router_id: 5.5.5.5
 
 loopback1:
-  - network: 192.169.5.1
+  - ip_address: 192.169.5.1
     mask: 255.255.255.0
 
 # Interfaces requiring OSPF authentication

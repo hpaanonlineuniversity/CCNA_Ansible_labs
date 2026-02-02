@@ -25,7 +25,7 @@
       cisco.ios.ios_config:
         lines:
           - "interface loopback1"
-          - "ip address {{ item.ip_address }} {{ item.prefix | ipaddr('netmask') }}"
+          - "ip address {{ item.ip_address }} {{ item.mask }}"
           - "description For internal network"
           - "exit"
       loop: "{{ loopback1 }}"
