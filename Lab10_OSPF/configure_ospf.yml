@@ -12,16 +12,23 @@
           - ospf_process_id is defined
         fail_msg: "Missing required OSPF variables"
 
-    # Task 2: Configure and enable all interfaces
-    - name: Configure and enable all interfaces
-      cisco.ios.ios_interfaces:
+    # Task 2: Configure IP addresses on interfaces
+    - name: Configure IP addresses on interfaces
+      cisco.ios.ios_l3_interfaces:
         config:
           - name: "{{ item.interface }}"
-            description: "{{ item.description }}"
-            enabled: true  # This does "no shutdown"
             ipv4:
               - address: "{{ item.ip_address }}/{{ item.prefix }}"
       loop: "{{ ospf_interfaces }}"
+      when: ospf_interfaces is defined
+
+    # Task 2a: No shutdown on GigabitEthernet interfaces
+    - name: Enable physical interfaces
+      cisco.ios.ios_config:
+        lines:
+          - "no shutdown"
+        parents: "interface {{ item.interface }}"
+      loop: "{{ ospf_interfaces | selectattr('interface', 'match', '^GigabitEthernet') | list }}"
       when: ospf_interfaces is defined
 
     # Task 3: Configure OSPF Process
