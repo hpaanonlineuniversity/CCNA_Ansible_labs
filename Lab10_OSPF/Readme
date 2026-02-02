@@ -1,0 +1,10 @@
+OSPF with Ansible 
+
+
+
+ip domain-name example.com
+crypto key generate rsa modulus 2048
+username devops privilege 15 secret devops
+line vty 0 4
+transport input ssh
+login local

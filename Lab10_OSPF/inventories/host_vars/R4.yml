@@ -1,0 +1,36 @@
+---
+####        host_vars/R4.yml
+hostname: R4
+router_id: 4.4.4.4
+
+# Interfaces requiring OSPF authentication
+ospf_auth_interfaces:
+  - GigabitEthernet0/4
+
+# Physical interfaces configuration
+ospf_interfaces:
+  - interface: GigabitEthernet0/4
+    description: "Link from R4 to R1"
+    ip_address: 14.14.14.2
+    prefix: 30
+
+  - interface: loopback0
+    description: "For Router_id"
+    ip_address: 4.4.4.4
+    prefix: 32
+
+  - interface: loopback1
+    description: "For internal network"
+    ip_address: 192.169.4.1
+    prefix: 24
+
+# Networks to advertise in OSPF
+ospf_advertised_interfaces:
+  - network: 14.14.14.2
+    wildcard: 0.0.0.0
+    ospf_area: 10
+  - network: 192.169.4.1
+    wildcard: 0.0.0.0
+    ospf_area: 10
+
+

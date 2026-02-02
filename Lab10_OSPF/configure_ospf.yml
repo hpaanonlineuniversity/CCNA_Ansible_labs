@@ -1,0 +1,85 @@
+---
+- name: Complete OSPF Configuration for Cisco Routers
+  hosts: routers
+  gather_facts: no  
+  
+  tasks:
+    # Task 1: Validate OSPF configuration variables
+    - name: Validate OSPF configuration variables
+      assert:
+        that:
+          - router_id is defined
+          - ospf_process_id is defined
+        fail_msg: "Missing required OSPF variables"
+
+    # Task 2: Configure Physical Interfaces for OSPF
+    - name: Configure physical interfaces for OSPF
+      ios_l3_interfaces:
+        config:
+          - name: "{{ item.interface }}"
+            description: "{{ item.description }}"
+            ipv4:
+              - address: "{{ item.ip_address }}/{{ item.prefix }}"
+      loop: "{{ ospf_interfaces }}"
+      when: ospf_interfaces is defined
+
+    # Task 3: Configure OSPF Process
+    - name: Configure OSPF process and router ID
+      ios_ospf:
+        config:
+          - processes:
+            - id: "{{ ospf_process_id }}"
+              router_id: "{{ router_id }}"
+
+    # Task 4: Advertise specific interface IPs in OSPF
+    - name: Advertise specific interface IPs in OSPF
+      ios_ospf:
+        config:
+          - processes:
+            - id: "{{ ospf_process_id }}"
+              networks:
+                - address: "{{ item.network }}"
+                  wildcard: "{{ item.wildcard }}"
+                  area: "{{ item.ospf_area }}"
+      loop: "{{ ospf_advertised_interfaces }}"
+      when: ospf_advertised_interfaces is defined
+
+
+    # Task 5: Configure OSPF authentication
+    - name: Configure OSPF MD5 authentication
+      ios_config:
+        lines:
+          - "ip ospf message-digest-key {{ ospf_md5_key_id }} md5 {{ ospf_md5_password }}"
+          - "ip ospf authentication message-digest"
+        parents: "interface {{ item }}"
+      loop: "{{ ospf_auth_interfaces }}"
+      when: ospf_md5_password is defined
+
+    # Task 6: Configure OSPF passive interfaces
+    - name: Configure passive interfaces for OSPF
+      ios_ospf:
+        config:
+          - processes:
+            - id: "{{ ospf_process_id }}"
+              passive_interface:
+                default: false
+                interface:
+                  - "{{ item }}"
+      loop: "{{ ospf_passive_interfaces }}"
+      when: ospf_passive_interfaces is defined
+
+
+
+
+
+    # Task to configure ospf another way
+    #- name: Enable OSPF on interfaces
+    #  ios_config:
+    #    lines:
+    #      - "ip ospf {{ ospf_process_id }} area {{ ospf_area }}"
+    #    parents: "interface {{ item }}"
+    #  loop: "{{ ospf_enabled_interfaces }}"
+    
+
+    
+     

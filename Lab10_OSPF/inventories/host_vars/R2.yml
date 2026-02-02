@@ -1,0 +1,36 @@
+---
+####        host_vars/R2.yml
+hostname: R2
+router_id: 2.2.2.2
+
+# Interfaces requiring OSPF authentication
+ospf_auth_interfaces:
+  - GigabitEthernet0/2
+
+# Physical interfaces configuration
+ospf_interfaces:
+  - interface: GigabitEthernet0/2
+    description: "Link from R2 to R1"
+    ip_address: 12.12.12.2
+    prefix: 30
+
+  - interface: loopback0
+    description: "For Router_id"
+    ip_address: 2.2.2.2
+    prefix: 32
+
+  - interface: loopback1
+    description: "For internal network"
+    ip_address: 192.169.2.1
+    prefix: 24
+
+# Networks to advertise in OSPF
+ospf_advertised_interfaces:
+  - network: 12.12.12.2
+    wildcard: 0.0.0.0
+    ospf_area: 0
+  - network: 192.169.2.1
+    wildcard: 0.0.0.0
+    ospf_area: 0
+
+

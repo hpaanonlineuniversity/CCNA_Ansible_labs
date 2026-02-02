@@ -1,0 +1,14 @@
+####        group_vars/cisco_routers.yml
+---
+# Common variables for all Cisco routers
+ospf_process_id: 10
+
+# OSPF MD5 Authentication Password
+ospf_md5_password: "MySecurePassword123"
+
+# Interfaces that should be passive in OSPF
+ospf_passive_interfaces:
+  - loopback0 # router id interface
+  - loopback1 # local network
+
+ospf_md5_key_id: 1

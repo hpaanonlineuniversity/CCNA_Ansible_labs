@@ -1,0 +1,62 @@
+---
+####        host_vars/R1.yml
+hostname: R1
+router_id: 1.1.1.1
+
+# Interfaces requiring OSPF authentication
+ospf_auth_interfaces:
+  - GigabitEthernet0/2
+  - GigabitEthernet0/3
+  - GigabitEthernet0/4
+  - GigabitEthernet0/5
+
+
+# Physical interfaces configuration
+ospf_interfaces:
+  - interface: GigabitEthernet0/2
+    description: "Link from R1 to R2"
+    ip_address: 12.12.12.1
+    prefix: 30
+  
+  - interface: GigabitEthernet0/3
+    description: "Link from R1 to R3"
+    ip_address: 13.13.13.1
+    prefix: 30
+  
+  - interface: GigabitEthernet0/4
+    description: "Link from R1 to R4"
+    ip_address: 14.14.14.1
+    prefix: 30
+  
+  - interface: GigabitEthernet0/5
+    description: "Link from R1 to R5"
+    ip_address: 15.15.15.1
+    prefix: 30
+  
+  - interface: loopback0
+    description: "For Router_id"
+    ip_address: 1.1.1.1
+    prefix: 32
+
+  - interface: loopback1
+    description: "For internal network"
+    ip_address: 192.169.1.1
+    prefix: 24
+
+# Networks to advertise in OSPF
+ospf_advertised_interfaces:
+  - network: 12.12.12.1
+    wildcard: 0.0.0.0
+    ospf_area: 0
+  - network: 13.13.13.1
+    wildcard: 0.0.0.0
+    ospf_area: 0
+  - network: 14.14.14.1
+    wildcard: 0.0.0.0
+    ospf_area: 10
+  - network: 15.15.15.1
+    wildcard: 0.0.0.0
+    ospf_area: 10
+  - network: 192.169.1.1
+    wildcard: 0.0.0.0
+    ospf_area: 0
