@@ -17,7 +17,7 @@
       ios_l3_interfaces:
         config:
           - name: "{{ item.interface }}"
-            description: "{{ item.description }}"
+            #description: "{{ item.description }}"
             ipv4:
               - address: "{{ item.ip_address }}/{{ item.prefix }}"
       loop: "{{ ospf_interfaces }}"
