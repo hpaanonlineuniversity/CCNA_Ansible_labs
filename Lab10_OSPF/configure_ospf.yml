@@ -27,7 +27,7 @@
     - name: Configure OSPF process and router ID
       ios_ospfv2:
         config:
-          - processes:
+          processes:
             - id: "{{ ospf_process_id }}"
               router_id: "{{ router_id }}"
 
