@@ -33,7 +33,7 @@
 
     # Task 4: Advertise specific interface IPs in OSPF
     - name: Advertise specific interface IPs in OSPF
-      ios_ospf:
+      ios_ospfv2:
         config:
           - processes:
             - id: "{{ ospf_process_id }}"
@@ -57,7 +57,7 @@
 
     # Task 6: Configure OSPF passive interfaces
     - name: Configure passive interfaces for OSPF
-      ios_ospf:
+      ios_ospfv2:
         config:
           - processes:
             - id: "{{ ospf_process_id }}"
