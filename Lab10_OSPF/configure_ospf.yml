@@ -57,3 +57,16 @@
         parents: "interface {{ item }}"
       loop: "{{ ospf_auth_interfaces }}"
       when: ospf_md5_password is defined
+
+    # Task 6: Configure OSPF passive interfaces
+    - name: Configure passive interfaces for OSPF
+      ios_ospf:
+        config:
+          - processes:
+            - process_id: "{{ ospf_process_id }}"
+              passive_interface:
+                default: false
+                interface:
+                  - "{{ item }}"
+      loop: "{{ ospf_passive_interfaces }}"
+      when: ospf_passive_interfaces is defined
