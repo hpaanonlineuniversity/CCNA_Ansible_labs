@@ -14,12 +14,12 @@ ospf_interfaces:
     ip_address: 15.15.15.2
     prefix: 30
   
-  - interface: loopback0
+  - interface: Loopback0
     description: "For Router_id"
     ip_address: 5.5.5.5
     prefix: 32
 
-  - interface: loopback1
+  - interface: Loopback1
     description: "For internal network"
     ip_address: 192.169.5.1
     prefix: 24
