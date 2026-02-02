@@ -8,7 +8,7 @@ ospf_md5_password: "MySecurePassword123"
 
 # Interfaces that should be passive in OSPF
 ospf_passive_interfaces:
-  - Loopback0 # router id interface
-  - Loopback1 # local network
+  - loopback0 # router id interface
+  - loopback1 # local network
 
 ospf_md5_key_id: 1

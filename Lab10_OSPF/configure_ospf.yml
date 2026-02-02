@@ -10,6 +10,7 @@
         that:
           - router_id is defined
           - ospf_process_id is defined
+          - loopback1 is defined
         fail_msg: "Missing required OSPF variables"
     
     - name: Configure Loopback0
