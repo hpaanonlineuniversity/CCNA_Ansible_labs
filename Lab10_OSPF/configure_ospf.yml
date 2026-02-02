@@ -23,13 +23,18 @@
       loop: "{{ ospf_interfaces }}"
       when: ospf_interfaces is defined
 
-    # Task 3: Configure OSPF Process
-    - name: Configure OSPF process and router ID
+    # Task 3: Configure OSPF process, router ID and passive interfaces
+    - name: Configure OSPF process, router ID and passive interfaces
       cisco.ios.ios_ospfv2:
         config:
           processes:
             - process_id: "{{ ospf_process_id }}"
               router_id: "{{ router_id }}"
+              passive_interface:
+                interface: 
+                  - Loopback0
+                  - Loopback1
+      when: ospf_process_id is defined
 
     # Task 4: Advertise specific interface IPs in OSPF
     - name: Advertise specific interface IPs in OSPF
@@ -49,15 +54,6 @@
         parents: "interface {{ item }}"
       loop: "{{ ospf_auth_interfaces }}"
       when: ospf_md5_password is defined
-
-    # Task 6: Configure OSPF passive interfaces
-    - name: Configure OSPF passive interfaces
-      cisco.ios.ios_config:
-        lines:
-          - "passive-interface {{ item | capitalize }}"  # loopback0 → Loopback0
-        parents: "router ospf {{ ospf_process_id }}"
-      loop: "{{ ospf_passive_interfaces }}"
-      when: ospf_passive_interfaces is defined
 
 
     
