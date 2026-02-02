@@ -60,10 +60,11 @@
 
     # Task 6: Configure OSPF passive interfaces
     - name: Configure OSPF passive interfaces
-      cisco.ios.ios_config:
-        lines:
+      cisco.ios.ios_command:
+        commands:
+          - "configure terminal"
           - "router ospf {{ ospf_process_id }}"
           - "passive-interface {{ item }}"
-          - "exit"
+          - "end"
       loop: "{{ ospf_passive_interfaces }}"
       when: ospf_passive_interfaces is defined
