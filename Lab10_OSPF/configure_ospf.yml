@@ -13,6 +13,7 @@
           - loopback1 is defined
         fail_msg: "Missing required OSPF variables"
     
+    # Task 2: Configure Loopback0
     - name: Configure Loopback0
       cisco.ios.ios_config:
         lines:
@@ -21,6 +22,7 @@
           - "description OSPF Router ID"
           - "exit"
     
+    # Task 3: Configure Loopback1
     - name: Configure Loopback1
       cisco.ios.ios_config:
         lines:
@@ -31,7 +33,7 @@
       loop: "{{ loopback1 }}"
       when: loopback1 is defined    
 
-    # Task 2: Configure IP addresses on interfaces
+    # Task 4: Configure IP addresses on interfaces
     - name: Configure IP addresses on interfaces
       cisco.ios.ios_l3_interfaces:
         config:
@@ -41,7 +43,7 @@
       loop: "{{ ospf_interfaces }}"
       when: ospf_interfaces is defined
 
-    # Task 2a: No shutdown on GigabitEthernet interfaces
+    # Task 5: No shutdown on GigabitEthernet interfaces
     - name: Enable physical interfaces
       cisco.ios.ios_config:
         lines:
@@ -50,7 +52,7 @@
       loop: "{{ ospf_interfaces | selectattr('interface', 'match', '^GigabitEthernet') | list }}"
       when: ospf_interfaces is defined
 
-    # Task 3: Configure OSPF Process
+    # Task 6: Configure OSPF Process
     - name: Configure OSPF process and router ID
       cisco.ios.ios_ospfv2:
         config:
@@ -58,7 +60,7 @@
             - process_id: "{{ ospf_process_id }}"
               router_id: "{{ router_id }}"
 
-    # Task 4: Advertise specific interface IPs in OSPF
+    # Task 7: Advertise specific interface IPs in OSPF
     - name: Advertise specific interface IPs in OSPF
       cisco.ios.ios_config:
         lines:
@@ -67,7 +69,7 @@
       loop: "{{ ospf_advertised_interfaces }}"
       when: ospf_advertised_interfaces is defined
 
-    # Task 5: Configure OSPF authentication
+    # Task 8: Configure OSPF authentication
     - name: Configure OSPF MD5 authentication
       cisco.ios.ios_config:
         lines:
@@ -77,7 +79,7 @@
       loop: "{{ ospf_auth_interfaces }}"
       when: ospf_md5_password is defined
 
-    # Task 6: Configure OSPF passive interfaces
+    # Task 9: Configure OSPF passive interfaces
     - name: Configure OSPF passive interfaces
       cisco.ios.ios_command:
         commands:
