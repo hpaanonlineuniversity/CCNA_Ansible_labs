@@ -36,6 +36,7 @@
     - name: Configure EIGRP Basic Settings
       cisco.ios.ios_config:
         lines:
+          - "{{ 'no auto-summary' if eigrp_settings.auto_summary == false else '' }}"
           - "router-id {{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}"
           - "passive-interface default"
         parents: ["router eigrp {{ eigrp_autonomous_system }}"]
@@ -50,4 +51,37 @@
       loop: "{{ eigrp_advertised_interfaces }}"
       when: eigrp_advertised_interfaces is defined
 
+    # Task 5: Configure EIGRP MD5 Authentication on specified interfaces
+    - name: Configure EIGRP MD5 Authentication
+      cisco.ios.ios_config:
+        lines:
+          - "ip authentication mode eigrp {{ eigrp_autonomous_system }} md5"
+          - "ip authentication key-chain eigrp {{ eigrp_autonomous_system }} EIGRP-KEY"
+        parents: "interface {{ item }}"
+      loop: "{{ eigrp_auth_interfaces }}"
+      when: eigrp_auth_interfaces is defined
+
+    # Task 6: Configure Key Chain for EIGRP Authentication
+    - name: Configure EIGRP Key Chain
+      cisco.ios.ios_config:
+        lines:
+          - "key chain EIGRP-KEY"
+          - "key {{ eigrp_key_id }}"
+          - "key-string {{ eigrp_md5_key }}"
+          #- "accept-lifetime 00:00:00 Jan 1 2026 23:59:59 Dec 31 2099"
+          #- "send-lifetime 00:00:00 Jan 1 2026 23:59:59 Dec 31 2099"
+
+    # Task 7: Configure Active Interfaces (not passive)
+    - name: Configure non-passive interfaces for EIGRP
+      cisco.ios.ios_config:
+        lines:
+          - "no passive-interface {{ item.interface }}"
+        parents: "router eigrp {{ eigrp_autonomous_system }}"
+      loop: "{{ eigrp_auth_interfaces }}"
+      when: eigrp_auth_interfaces is defined
+
+    # Task 8: Save running configuration to startup
+    #- name: Save configuration
+    #  cisco.ios.ios_config:
+    #    save_when: always
     
