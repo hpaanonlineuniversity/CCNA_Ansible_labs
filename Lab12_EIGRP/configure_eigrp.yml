@@ -37,7 +37,7 @@
       cisco.ios.ios_config:
         lines:
           - "router eigrp {{ eigrp_autonomous_system }}"
-          - "eigrp router-id {{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}"
+          - "router-id {{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}.{{ hostname.split('R')[1] }}"
           - "passive-interface default"
         parents: []
       when: eigrp_advertised_interfaces is defined
@@ -49,6 +49,6 @@
           - "network {{ item.network }} {{ item.wildcard }}"
         parents: ["router eigrp {{ eigrp_autonomous_system }}"]
       loop: "{{ eigrp_advertised_interfaces }}"
-      when: eigrp_advertised_interfaces is defined 
+      when: eigrp_advertised_interfaces is defined
 
     
