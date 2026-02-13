@@ -71,7 +71,16 @@
         match: none
       when: eigrp_md5_key is defined and eigrp_key_id is defined
    
-
+    # Task 7: Configure EIGRP Passive Interfaces
+    - name: Configure EIGRP Passive Interfaces
+      cisco.ios.ios_config:
+        lines:
+          - "passive-interface {{ item.interface }}"
+        parents: ["router eigrp {{ eigrp_autonomous_system }}"]
+      loop: "{{ eigrp_passive_interfaces }}"
+      when: 
+        - eigrp_passive_interfaces is defined
+        - eigrp_passive_interfaces | length > 0
 
     # Task 8: Save running configuration to startup
     #- name: Save configuration

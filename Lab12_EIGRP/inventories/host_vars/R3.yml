@@ -24,3 +24,6 @@ eigrp_advertised_interfaces:
     wildcard: 0.0.0.0
   - network: 192.168.3.1
     wildcard: 0.0.0.0
+
+eigrp_passive_interfaces:
+  - interface: GigabitEthernet0/3
