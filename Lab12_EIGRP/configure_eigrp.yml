@@ -60,8 +60,28 @@
       loop: "{{ eigrp_auth_interfaces }}"
       when: eigrp_auth_interfaces is defined
 
-    # Task 6: Configure EIGRP Key Chain
-    - name: Configure EIGRP Key Chain
+    # Task 6a: Check if key chain exists
+    - name: Check if EIGRP Key Chain exists
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | section key chain EIGRP-KEY
+      register: keychain_check
+      ignore_errors: yes
+      when: eigrp_md5_key is defined and eigrp_key_id is defined
+
+    # Task 6b: Create key chain if it doesn't exist
+    - name: Create EIGRP Key Chain
+      cisco.ios.ios_config:
+        lines:
+          - "key chain EIGRP-KEY"
+        parents: []
+      when: 
+        - eigrp_md5_key is defined 
+        - eigrp_key_id is defined
+        - keychain_check.stdout[0] == ""
+
+    # Task 6c: Configure key and key-string
+    - name: Configure EIGRP Key
       cisco.ios.ios_config:
         lines:
           - "key {{ eigrp_key_id }}"
