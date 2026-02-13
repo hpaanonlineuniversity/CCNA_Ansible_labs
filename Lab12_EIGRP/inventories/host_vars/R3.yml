@@ -20,7 +20,7 @@ eigrp_interfaces:
   
 # Networks to advertise in EIGRP
 eigrp_advertised_interfaces:
-  - network: 13.13.13.0
-    wildcard: 0.0.0.3
-  - network: 192.168.3.0
-    wildcard: 0.0.0.255
+  - network: 13.13.13.2
+    wildcard: 0.0.0.0
+  - network: 192.168.3.1
+    wildcard: 0.0.0.0
