@@ -1,0 +1,26 @@
+---
+####        host_vars/R2.yml
+hostname: R2
+
+# Interfaces requiring EIGRP authentication
+eigrp_auth_interfaces:
+  - GigabitEthernet0/1
+
+# Physical interfaces configuration
+eigrp_interfaces:
+  - interface: GigabitEthernet0/1
+    description: "Link from R2 to R1"
+    ip_address: 12.12.12.2
+    prefix: 30
+
+  - interface: GigabitEthernet0/3
+    description: "Link from R2 to SW2"
+    ip_address: 192.168.2.1
+    prefix: 24
+  
+# Networks to advertise in EIGRP
+eigrp_advertised_interfaces:
+  - network: 12.12.12.2
+    wildcard: 0.0.0.0
+  - network: 192.168.2.1
+    wildcard: 0.0.0.0

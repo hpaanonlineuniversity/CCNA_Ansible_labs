@@ -1,0 +1,12 @@
+---
+# Common variables for all Cisco routers
+eigrp_autonomous_system: 10
+
+# EIGRP MD5 Authentication
+eigrp_md5_key: "cisco123"
+eigrp_key_id: 1
+
+# EIGRP Common Settings
+eigrp_settings:
+  auto_summary: false
+  network_type: eigrp 

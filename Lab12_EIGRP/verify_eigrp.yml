@@ -1,0 +1,21 @@
+---
+- name: Complete EIGRP Configuration for Cisco Routers
+  hosts: routers
+  gather_facts: no  
+  
+  tasks:
+    
+    # Task 1: Verify EIGRP neighbors
+    - name: Verify EIGRP neighbors
+      cisco.ios.ios_command:
+        commands:
+          - show ip eigrp neighbors
+      register: eigrp_neighbors
+      ignore_errors: yes
+
+    # Task 2: Debug output
+    - name: Display EIGRP neighbors
+      debug:
+        var: eigrp_neighbors.stdout_lines
+      when: eigrp_neighbors is defined
+    
