@@ -60,15 +60,27 @@
       loop: "{{ eigrp_auth_interfaces }}"
       when: eigrp_auth_interfaces is defined
 
-    # Task 6: Configure Key Chain for EIGRP Authentication
+    # Task 6a: Check if key chain exists
+    - name: Check if EIGRP Key Chain exists
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include ^key chain EIGRP-KEY
+      register: keychain_check
+      ignore_errors: yes
+      when: eigrp_md5_key is defined and eigrp_key_id is defined
+
+    # Task 6b: Configure Key Chain (only if it doesn't exist)
     - name: Configure EIGRP Key Chain
       cisco.ios.ios_config:
         lines:
           - "key chain EIGRP-KEY"
           - "key {{ eigrp_key_id }}"
           - "key-string {{ eigrp_md5_key }}"
-          #- "accept-lifetime 00:00:00 Jan 1 2026 23:59:59 Dec 31 2099"
-          #- "send-lifetime 00:00:00 Jan 1 2026 23:59:59 Dec 31 2099"
+        parents: []
+      when: 
+        - eigrp_md5_key is defined 
+        - eigrp_key_id is defined
+        - keychain_check.stdout[0] is search("")
 
 
     # Task 8: Save running configuration to startup
