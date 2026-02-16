@@ -1,0 +1,35 @@
+Site to Site IPSec VPN and gre tunnel with Ansible 
+
+First of All , please configure ip address to all ansible managed interfaces G0/0 on YGN,MDY routers ( check ip address from image)
+
+and configure ssh login and username , password by copy paste the following command
+
+
+
+ip domain-name example.com
+crypto key generate rsa modulus 2048
+username devops privilege 15 secret devops
+line vty 0 4
+transport input ssh
+login local
+end
+
+
+and run ansible playbook, Thank you!!!
+
+===========================================================================================================
+
+ပထမဆုံးအနေနဲ့၊ YGN or MDY router ရဲ့ G0/0 interface များကို IP address သတ်မှတ်ပါ။ ( check ip address from image)
+
+ထို့နောက် SSH login နှင့် username, password ကိုအောက်ပါ command များကို copy paste လုပ်ကာ configure လုပ်ပါ။
+text
+
+ip domain-name example.com
+crypto key generate rsa modulus 2048
+username devops privilege 15 secret devops
+line vty 0 4
+transport input ssh
+login local
+end
+
+and run ansible playbook, Thank you!!!

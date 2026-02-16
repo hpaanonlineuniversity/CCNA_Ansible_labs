@@ -1,5 +1,5 @@
 ---
-- name: Configure GRE Tunnel between YGN and MDY
+- name: Configure GRE Tunnel and Routes between YGN and MDY
   hosts: all
   gather_facts: no
   connection: network_cli
@@ -15,6 +15,9 @@
         neighbor_ip: 10.10.10.2
         mtu: 1400
         tcp_mss: 1360
+        loopback_network: 192.168.1.0
+        loopback_mask: 255.255.255.0
+        remote_loopback: 192.168.2.0
       MDY:
         tunnel_id: 0
         tunnel_source: GigabitEthernet0/1
@@ -24,6 +27,9 @@
         neighbor_ip: 10.10.10.1
         mtu: 1400
         tcp_mss: 1360
+        loopback_network: 192.168.2.0
+        loopback_mask: 255.255.255.0
+        remote_loopback: 192.168.1.0
 
   tasks:
     - name: Configure GRE Tunnel on {{ inventory_hostname }}
@@ -40,28 +46,54 @@
         replace: block
       when: inventory_hostname in ['YGN', 'MDY']
 
-    - name: Verify GRE Tunnel Configuration
-      ios_command:
-        commands:
-          - show running-config interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
-          - show interfaces Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }} | include MTU|MSS
-      register: verification
-      
-    - name: Display Configuration
-      debug:
-        msg: 
-          - "=== {{ inventory_hostname }} Tunnel Configuration ==="
-          - "{{ verification.stdout[0] }}"
-          - "MTU/MSS Settings: {{ verification.stdout[1] }}"
+    - name: Add static route for remote loopback network via GRE Tunnel
+      ios_config:
+        lines:
+          - ip route {{ tunnel_info[inventory_hostname].remote_loopback }} {{ tunnel_info[inventory_hostname].loopback_mask }} Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+      when: inventory_hostname in ['YGN', 'MDY']
 
-    - name: Test GRE Tunnel connectivity from YGN
+    - name: Verify GRE Tunnel Status
       ios_command:
         commands:
-          - ping {{ tunnel_info['MDY'].tunnel_ip }} source Tunnel{{ tunnel_info['YGN'].tunnel_id }} repeat 2
+          - show ip interface brief | include Tunnel
+      register: tunnel_status
+      
+    - name: Display Tunnel Status
+      debug:
+        var: tunnel_status.stdout_lines
+
+    - name: Verify Routing Table
+      ios_command:
+        commands:
+          - show ip route {{ tunnel_info[inventory_hostname].remote_loopback }} {{ tunnel_info[inventory_hostname].loopback_mask }}
+      register: route_status
+      
+    - name: Display Route Status
+      debug:
+        msg: "Route to {{ tunnel_info[inventory_hostname].remote_loopback }} on {{ inventory_hostname }}: {{ route_status.stdout[0] }}"
+
+    - name: Test connectivity to remote loopback from YGN
+      ios_command:
+        commands:
+          - ping {{ tunnel_info['MDY'].loopback_network | replace('.0', '.1') }} source Loopback0 repeat 2
       when: inventory_hostname == "YGN"
       register: ping_result
+      ignore_errors: yes
       
-    - name: Display Ping Test Results
+    - name: Display Ping Test Results from YGN
       debug:
-        msg: "Ping from YGN to MDY via Tunnel: {{ ping_result.stdout[0] }}"
+        msg: "Ping from YGN to MDY Loopback (192.168.2.1): {{ ping_result.stdout[0] | default('Failed') }}"
       when: inventory_hostname == "YGN"
+
+    - name: Test connectivity to remote loopback from MDY
+      ios_command:
+        commands:
+          - ping {{ tunnel_info['YGN'].loopback_network | replace('.0', '.1') }} source Loopback0 repeat 2
+      when: inventory_hostname == "MDY"
+      register: ping_result_mdy
+      ignore_errors: yes
+      
+    - name: Display Ping Test Results from MDY
+      debug:
+        msg: "Ping from MDY to YGN Loopback (192.168.1.1): {{ ping_result_mdy.stdout[0] | default('Failed') }}"
+      when: inventory_hostname == "MDY"
