@@ -34,8 +34,8 @@
   tasks:
     - name: Configure GRE Tunnel on {{ inventory_hostname }}
       ios_config:
+        parents: "interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}"
         lines:
-          - interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
           - ip address {{ tunnel_info[inventory_hostname].tunnel_ip }} {{ tunnel_info[inventory_hostname].tunnel_mask }}
           - tunnel source {{ tunnel_info[inventory_hostname].tunnel_source }}
           - tunnel destination {{ tunnel_info[inventory_hostname].tunnel_destination }}
