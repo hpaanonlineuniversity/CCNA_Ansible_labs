@@ -1,0 +1,94 @@
+---
+- name: Simple IPSec Site-to-Site VPN over GRE Tunnel between YGN and MDY
+  hosts: all
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    vpn_config:
+      YGN:
+        peer_ip: 13.13.13.2
+        pre_shared_key: Cisc0123
+        local_lan: 192.168.1.0
+        remote_lan: 192.168.2.0
+        lan_mask: 255.255.255.0
+        crypto_map_name: VPN-MAP
+        profile_name: GRE-IPSEC-PROFILE
+        physical_int: GigabitEthernet0/1
+        tunnel_id: 0
+        
+      MDY:
+        peer_ip: 12.12.12.2
+        pre_shared_key: Cisc0123
+        local_lan: 192.168.2.0
+        remote_lan: 192.168.1.0
+        lan_mask: 255.255.255.0
+        crypto_map_name: VPN-MAP
+        profile_name: GRE-IPSEC-PROFILE
+        physical_int: GigabitEthernet0/1
+        tunnel_id: 0
+
+  tasks:
+    - name: "Configure ISAKMP Policy (Phase 1) on {{ inventory_hostname }}"
+      ios_config:
+        lines:
+          - crypto isakmp policy 10
+          - authentication pre-share
+          - encryption aes 256
+          - hash sha256
+          - group 5
+          - lifetime 86400
+          - crypto isakmp key {{ vpn_config[inventory_hostname].pre_shared_key }} address {{ vpn_config[inventory_hostname].peer_ip }}
+      when: inventory_hostname in ['YGN', 'MDY']
+
+    - name: "Configure IPSec Transform Set (Phase 2) on {{ inventory_hostname }}"
+      ios_config:
+        lines:
+          - crypto ipsec transform-set GRE-TRANSFORM esp-aes 256 esp-sha256-hmac
+          - mode tunnel
+      when: inventory_hostname in ['YGN', 'MDY']
+
+    - name: "Configure IPSec Profile on {{ inventory_hostname }}"
+      ios_config:
+        parents: "crypto ipsec profile {{ vpn_config[inventory_hostname].profile_name }}"
+        lines:
+          - set transform-set GRE-TRANSFORM
+          - set pfs group5
+          - set security-association lifetime seconds 3600
+        match: line
+        replace: block
+      when: inventory_hostname in ['YGN', 'MDY']
+
+    - name: "Apply IPSec Profile to GRE Tunnel on {{ inventory_hostname }}"
+      ios_config:
+        parents: "interface Tunnel{{ vpn_config[inventory_hostname].tunnel_id }}"
+        lines:
+          - tunnel protection ipsec profile {{ vpn_config[inventory_hostname].profile_name }}
+        match: line
+        replace: block
+      when: inventory_hostname in ['YGN', 'MDY']
+
+    - name: "Test VPN Connectivity from YGN to MDY LAN"
+      ios_command:
+        commands:
+          - ping 192.168.2.1 repeat 3
+      when: inventory_hostname == "YGN"
+      register: ping_result
+
+    - name: "Show Ping Test Result"
+      debug:
+        msg: "Ping from YGN to 192.168.2.1: {{ ping_result.stdout[0] if ping_result is defined else 'Not tested' }}"
+      when: inventory_hostname == "YGN"
+
+    - name: "Verify IPSec Status"
+      ios_command:
+        commands:
+          - show crypto isakmp sa
+          - show crypto ipsec sa | include local
+      register: vpn_status
+      when: inventory_hostname in ['YGN', 'MDY']
+
+    - name: "Show VPN Status"
+      debug:
+        var: vpn_status.stdout_lines
+      when: inventory_hostname in ['YGN', 'MDY']
