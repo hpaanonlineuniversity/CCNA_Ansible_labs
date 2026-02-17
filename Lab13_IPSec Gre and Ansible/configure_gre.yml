@@ -16,7 +16,7 @@
         mtu: 1400
         tcp_mss: 1360
         lan_network: 192.168.1.0
-        lan_mask: 255.255.255.0
+        remote_lan_mask: 255.255.255.0
         remote_lan: 192.168.2.0
       MDY:
         tunnel_id: 0
@@ -28,7 +28,7 @@
         mtu: 1400
         tcp_mss: 1360
         lan_network: 192.168.2.0
-        lan_mask: 255.255.255.0
+        remote_lan_mask: 255.255.255.0
         remote_lan: 192.168.1.0
 
   tasks:
@@ -49,7 +49,7 @@
     - name: Add static route for remote lan network via GRE Tunnel
       ios_config:
         lines:
-          - ip route {{ tunnel_info[inventory_hostname].remote_lan }} {{ tunnel_info[inventory_hostname].lan_mask }} Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - ip route {{ tunnel_info[inventory_hostname].remote_lan }} {{ tunnel_info[inventory_hostname].remote_lan_mask }} Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
       when: inventory_hostname in ['YGN', 'MDY']
 
     - name: Verify GRE Tunnel Status
@@ -65,7 +65,7 @@
     - name: Verify Routing Table
       ios_command:
         commands:
-          - show ip route {{ tunnel_info[inventory_hostname].remote_lan }} {{ tunnel_info[inventory_hostname].lan_mask }}
+          - show ip route {{ tunnel_info[inventory_hostname].remote_lan }} {{ tunnel_info[inventory_hostname].remote_lan_mask }}
       register: route_status
       
     - name: Display Route Status
