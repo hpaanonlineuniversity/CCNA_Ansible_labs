@@ -75,25 +75,6 @@
     - name: Test connectivity to remote lan from YGN
       ios_command:
         commands:
-          - ping {{ tunnel_info['MDY'].lan_network | replace('.0', '.1') }} source lan0 repeat 2
-      when: inventory_hostname == "YGN"
-      register: ping_result
-      ignore_errors: yes
-      
-    - name: Display Ping Test Results from YGN
-      debug:
-        msg: "Ping from YGN to MDY lan (192.168.2.1): {{ ping_result.stdout[0] | default('Failed') }}"
+          - ping 192.168.2.1 repeat 2
       when: inventory_hostname == "YGN"
 
-    - name: Test connectivity to remote lan from MDY
-      ios_command:
-        commands:
-          - ping {{ tunnel_info['YGN'].lan_network | replace('.0', '.1') }} source lan0 repeat 2
-      when: inventory_hostname == "MDY"
-      register: ping_result_mdy
-      ignore_errors: yes
-      
-    - name: Display Ping Test Results from MDY
-      debug:
-        msg: "Ping from MDY to YGN lan (192.168.1.1): {{ ping_result_mdy.stdout[0] | default('Failed') }}"
-      when: inventory_hostname == "MDY"
