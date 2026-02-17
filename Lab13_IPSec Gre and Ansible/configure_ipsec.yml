@@ -9,9 +9,6 @@
       YGN:
         peer_ip: 13.13.13.2
         pre_shared_key: Cisc0123
-        local_lan: 192.168.1.0
-        remote_lan: 192.168.2.0
-        lan_mask: 255.255.255.0
         crypto_map_name: VPN-MAP
         profile_name: GRE-IPSEC-PROFILE
         physical_int: GigabitEthernet0/1
@@ -20,9 +17,6 @@
       MDY:
         peer_ip: 12.12.12.2
         pre_shared_key: Cisc0123
-        local_lan: 192.168.2.0
-        remote_lan: 192.168.1.0
-        lan_mask: 255.255.255.0
         crypto_map_name: VPN-MAP
         profile_name: GRE-IPSEC-PROFILE
         physical_int: GigabitEthernet0/1
