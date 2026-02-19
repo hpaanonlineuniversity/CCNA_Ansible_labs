@@ -1,0 +1,12 @@
+gnome-terminal \
+  --tab --title="Telnet 32782" -- bash -c "telnet 192.168.100.11 32770; exec bash" 
+
+gnome-terminal \
+  --tab --title="Telnet 32783" -- bash -c "telnet 192.168.100.11 32771; exec bash"
+
+gnome-terminal \
+  --tab --title="Telnet 32783" -- bash -c "telnet 192.168.100.11 32772; exec bash"
+
+
+
+

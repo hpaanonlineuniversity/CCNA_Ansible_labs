@@ -1,0 +1,67 @@
+---
+- name: Configure GRE Tunnel between YGN and MDY
+  hosts: all
+  gather_facts: no
+  connection: network_cli
+  
+  vars:
+    tunnel_info:
+      YGN:
+        tunnel_id: 0
+        tunnel_source: GigabitEthernet0/1
+        tunnel_destination: 13.13.13.2
+        tunnel_ip: 10.10.10.1
+        tunnel_mask: 255.255.255.252
+        neighbor_ip: 10.10.10.2
+        mtu: 1400
+        tcp_mss: 1360
+      MDY:
+        tunnel_id: 0
+        tunnel_source: GigabitEthernet0/1
+        tunnel_destination: 12.12.12.2
+        tunnel_ip: 10.10.10.2
+        tunnel_mask: 255.255.255.252
+        neighbor_ip: 10.10.10.1
+        mtu: 1400
+        tcp_mss: 1360
+
+  tasks:
+    - name: Configure GRE Tunnel on {{ inventory_hostname }}
+      ios_config:
+        lines:
+          - interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - ip address {{ tunnel_info[inventory_hostname].tunnel_ip }} {{ tunnel_info[inventory_hostname].tunnel_mask }}
+          - tunnel source {{ tunnel_info[inventory_hostname].tunnel_source }}
+          - tunnel destination {{ tunnel_info[inventory_hostname].tunnel_destination }}
+          - ip mtu {{ tunnel_info[inventory_hostname].mtu }}
+          - ip tcp adjust-mss {{ tunnel_info[inventory_hostname].tcp_mss }}
+          - no shutdown
+        match: line
+        replace: block
+      when: inventory_hostname in ['YGN', 'MDY']
+
+    - name: Verify GRE Tunnel Configuration
+      ios_command:
+        commands:
+          - show running-config interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - show interfaces Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }} | include MTU|MSS
+      register: verification
+      
+    - name: Display Configuration
+      debug:
+        msg: 
+          - "=== {{ inventory_hostname }} Tunnel Configuration ==="
+          - "{{ verification.stdout[0] }}"
+          - "MTU/MSS Settings: {{ verification.stdout[1] }}"
+
+    - name: Test GRE Tunnel connectivity from YGN
+      ios_command:
+        commands:
+          - ping {{ tunnel_info['MDY'].tunnel_ip }} source Tunnel{{ tunnel_info['YGN'].tunnel_id }} repeat 2
+      when: inventory_hostname == "YGN"
+      register: ping_result
+      
+    - name: Display Ping Test Results
+      debug:
+        msg: "Ping from YGN to MDY via Tunnel: {{ ping_result.stdout[0] }}"
+      when: inventory_hostname == "YGN"
