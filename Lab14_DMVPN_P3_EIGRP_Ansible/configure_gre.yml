@@ -14,6 +14,7 @@
         mtu: 1400
         tcp_mss: 1360
         tunnel_mode: gre multipoint
+        tunnel_key: 2
         nhrp_network_id: 1
         nhrp_auth: dmvpn123
         is_hub: true
@@ -25,10 +26,13 @@
         mtu: 1400
         tcp_mss: 1360
         tunnel_mode: gre multipoint
+        tunnel_key: 2
         nhrp_network_id: 1
         nhrp_auth: dmvpn123
+        nhrp_holdtime: 60              
+        nhrp_registration_timeout: 30   
         hub_tunnel_ip: 10.10.10.10
-        hub_public_ip: 100.100.10.1  # HQ public IP for NHRP mapping
+        hub_public_ip: 100.100.10.1
         is_hub: false
       MDY:
         tunnel_id: 0
@@ -38,10 +42,13 @@
         mtu: 1400
         tcp_mss: 1360
         tunnel_mode: gre multipoint
+        tunnel_key: 2
         nhrp_network_id: 1
         nhrp_auth: dmvpn123
+        nhrp_holdtime: 60              
+        nhrp_registration_timeout: 30  
         hub_tunnel_ip: 10.10.10.10
-        hub_public_ip: 100.100.10.1  # HQ public IP for NHRP mapping
+        hub_public_ip: 100.100.10.1
         is_hub: false
 
   tasks:
@@ -51,7 +58,8 @@
           - interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
           - ip address {{ tunnel_info[inventory_hostname].tunnel_ip }} {{ tunnel_info[inventory_hostname].tunnel_mask }}
           - tunnel source {{ tunnel_info[inventory_hostname].tunnel_source }}
-          - tunnel mode {{ tunnel_info[inventory_hostname].tunnel_mode }}  # gre multipoint
+          - tunnel mode {{ tunnel_info[inventory_hostname].tunnel_mode }}
+          - tunnel key {{ tunnel_info[inventory_hostname].tunnel_key }}
           - ip mtu {{ tunnel_info[inventory_hostname].mtu }}
           - ip tcp adjust-mss {{ tunnel_info[inventory_hostname].tcp_mss }}
           - no shutdown
@@ -63,7 +71,7 @@
           - ip nhrp network-id {{ tunnel_info[inventory_hostname].nhrp_network_id }}
           - ip nhrp authentication {{ tunnel_info[inventory_hostname].nhrp_auth }}
           - ip nhrp map multicast dynamic
-          #- ip nhrp redirect
+          - ip nhrp redirect
       when: tunnel_info[inventory_hostname].is_hub == true
 
     - name: Configure NHRP on Spokes (YGN and MDY)
@@ -72,10 +80,12 @@
           - interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
           - ip nhrp network-id {{ tunnel_info[inventory_hostname].nhrp_network_id }}
           - ip nhrp authentication {{ tunnel_info[inventory_hostname].nhrp_auth }}
+          - ip nhrp holdtime {{ tunnel_info[inventory_hostname].nhrp_holdtime }}
+          - ip nhrp registration timeout {{ tunnel_info[inventory_hostname].nhrp_registration_timeout }}
           - ip nhrp map {{ tunnel_info[inventory_hostname].hub_tunnel_ip }} {{ tunnel_info[inventory_hostname].hub_public_ip }}
           - ip nhrp map multicast {{ tunnel_info[inventory_hostname].hub_public_ip }}
           - ip nhrp nhs {{ tunnel_info[inventory_hostname].hub_tunnel_ip }}
-          #- ip nhrp shortcut
+          - ip nhrp shortcut
       when: tunnel_info[inventory_hostname].is_hub == false
 
     - name: Verify MGRE Tunnel and NHRP status
@@ -85,8 +95,14 @@
           - show interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
           - show ip nhrp
           - show ip nhrp traffic
+          - show ip nhrp summary
       register: output
 
     - name: Display Tunnel and NHRP status
       debug:
         var: output.stdout_lines
+
+    #- name: Save configuration
+    #  ios_config:
+    #    save_when: modified
+    #  when: ansible_network_os == 'ios'
