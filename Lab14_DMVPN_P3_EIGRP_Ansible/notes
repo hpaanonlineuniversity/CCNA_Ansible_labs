@@ -10,3 +10,9 @@ gnome-terminal \
 
 
 
+# i have HQ as hub and spoke as YGN and MDY office
+  # i try to connect DMVPN phase 3 between them
+  # first of all, this playbook create gre tunnel between them
+  # HQ public ip = 100.100.10.1/30
+  # YGN public ip = 100.100.11.1/30
+  # MDY public ip = 100.100.12.1/30

@@ -1,67 +1,92 @@
 ---
-- name: Configure GRE Tunnel between YGN and MDY
-  hosts: all
+- name: Configure MGRE Tunnel and NHRP between HQ, YGN and MDY
+  hosts: routers
   gather_facts: no
   connection: network_cli
-  
+
   vars:
     tunnel_info:
+      HQ:
+        tunnel_id: 0
+        tunnel_source: GigabitEthernet0/1
+        tunnel_ip: 10.10.10.10
+        tunnel_mask: 255.255.255.0
+        mtu: 1400
+        tcp_mss: 1360
+        tunnel_mode: gre multipoint
+        nhrp_network_id: 1
+        nhrp_auth: dmvpn123
+        is_hub: true
       YGN:
         tunnel_id: 0
         tunnel_source: GigabitEthernet0/1
-        tunnel_destination: 13.13.13.2
-        tunnel_ip: 10.10.10.1
-        tunnel_mask: 255.255.255.252
-        neighbor_ip: 10.10.10.2
+        tunnel_ip: 10.10.10.11
+        tunnel_mask: 255.255.255.0
         mtu: 1400
         tcp_mss: 1360
+        tunnel_mode: gre multipoint
+        nhrp_network_id: 1
+        nhrp_auth: dmvpn123
+        hub_tunnel_ip: 10.10.10.10
+        hub_public_ip: 100.100.10.1  # HQ public IP for NHRP mapping
+        is_hub: false
       MDY:
         tunnel_id: 0
         tunnel_source: GigabitEthernet0/1
-        tunnel_destination: 12.12.12.2
-        tunnel_ip: 10.10.10.2
-        tunnel_mask: 255.255.255.252
-        neighbor_ip: 10.10.10.1
+        tunnel_ip: 10.10.10.12
+        tunnel_mask: 255.255.255.0
         mtu: 1400
         tcp_mss: 1360
+        tunnel_mode: gre multipoint
+        nhrp_network_id: 1
+        nhrp_auth: dmvpn123
+        hub_tunnel_ip: 10.10.10.10
+        hub_public_ip: 100.100.10.1  # HQ public IP for NHRP mapping
+        is_hub: false
 
   tasks:
-    - name: Configure GRE Tunnel on {{ inventory_hostname }}
+    - name: Create MGRE Tunnel interface
       ios_config:
         lines:
-          - interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
           - ip address {{ tunnel_info[inventory_hostname].tunnel_ip }} {{ tunnel_info[inventory_hostname].tunnel_mask }}
           - tunnel source {{ tunnel_info[inventory_hostname].tunnel_source }}
-          - tunnel destination {{ tunnel_info[inventory_hostname].tunnel_destination }}
+          - tunnel mode {{ tunnel_info[inventory_hostname].tunnel_mode }}  # gre multipoint
           - ip mtu {{ tunnel_info[inventory_hostname].mtu }}
           - ip tcp adjust-mss {{ tunnel_info[inventory_hostname].tcp_mss }}
           - no shutdown
-        match: line
-        replace: block
-      when: inventory_hostname in ['YGN', 'MDY']
 
-    - name: Verify GRE Tunnel Configuration
+    - name: Configure NHRP on Hub (HQ)
+      ios_config:
+        lines:
+          - interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - ip nhrp network-id {{ tunnel_info[inventory_hostname].nhrp_network_id }}
+          - ip nhrp authentication {{ tunnel_info[inventory_hostname].nhrp_auth }}
+          - ip nhrp map multicast dynamic
+          #- ip nhrp redirect
+      when: tunnel_info[inventory_hostname].is_hub == true
+
+    - name: Configure NHRP on Spokes (YGN and MDY)
+      ios_config:
+        lines:
+          - interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - ip nhrp network-id {{ tunnel_info[inventory_hostname].nhrp_network_id }}
+          - ip nhrp authentication {{ tunnel_info[inventory_hostname].nhrp_auth }}
+          - ip nhrp map {{ tunnel_info[inventory_hostname].hub_tunnel_ip }} {{ tunnel_info[inventory_hostname].hub_public_ip }}
+          - ip nhrp map multicast {{ tunnel_info[inventory_hostname].hub_public_ip }}
+          - ip nhrp nhs {{ tunnel_info[inventory_hostname].hub_tunnel_ip }}
+          #- ip nhrp shortcut
+      when: tunnel_info[inventory_hostname].is_hub == false
+
+    - name: Verify MGRE Tunnel and NHRP status
       ios_command:
         commands:
-          - show running-config interface Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
-          - show interfaces Tunnel{{ tunnel_info[inventory_hostname].tunnel_id }} | include MTU|MSS
-      register: verification
-      
-    - name: Display Configuration
-      debug:
-        msg: 
-          - "=== {{ inventory_hostname }} Tunnel Configuration ==="
-          - "{{ verification.stdout[0] }}"
-          - "MTU/MSS Settings: {{ verification.stdout[1] }}"
+          - show ip interface brief | include Tunnel
+          - show interface tunnel{{ tunnel_info[inventory_hostname].tunnel_id }}
+          - show ip nhrp
+          - show ip nhrp traffic
+      register: output
 
-    - name: Test GRE Tunnel connectivity from YGN
-      ios_command:
-        commands:
-          - ping {{ tunnel_info['MDY'].tunnel_ip }} source Tunnel{{ tunnel_info['YGN'].tunnel_id }} repeat 2
-      when: inventory_hostname == "YGN"
-      register: ping_result
-      
-    - name: Display Ping Test Results
+    - name: Display Tunnel and NHRP status
       debug:
-        msg: "Ping from YGN to MDY via Tunnel: {{ ping_result.stdout[0] }}"
-      when: inventory_hostname == "YGN"
+        var: output.stdout_lines
