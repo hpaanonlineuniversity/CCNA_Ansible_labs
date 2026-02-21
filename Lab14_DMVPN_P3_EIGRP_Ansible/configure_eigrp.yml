@@ -40,27 +40,27 @@
     - name: Configure EIGRP on routers (Internal Networks Only)
       ios_config:
         lines:
-          - router eigrp {{ eigrp_config[inventory_hostname].as_number }}
+          - "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
           {% for network in eigrp_config[inventory_hostname].network_statements %}
-          - {{ network }}
+          - "{{ network }}"
           {% endfor %}
-          - no auto-summary
-          - passive-interface default
-          - no passive-interface {{ eigrp_config[inventory_hostname].tunnel_interface }}
+          - "no auto-summary"
+          - "passive-interface default"
+          - "no passive-interface {{ eigrp_config[inventory_hostname].tunnel_interface }}"
 
     - name: Configure EIGRP on Tunnel interface
       ios_config:
         lines:
-          - interface {{ eigrp_config[inventory_hostname].tunnel_interface }}
-          - ip bandwidth-percent eigrp {{ eigrp_config[inventory_hostname].as_number }} 50
-          - ip hello-interval eigrp {{ eigrp_config[inventory_hostname].as_number }} 10
-          - ip hold-time eigrp {{ eigrp_config[inventory_hostname].as_number }} 30
+          - "interface {{ eigrp_config[inventory_hostname].tunnel_interface }}"
+          - "ip bandwidth-percent eigrp {{ eigrp_config[inventory_hostname].as_number }} 50"
+          - "ip hello-interval eigrp {{ eigrp_config[inventory_hostname].as_number }} 10"
+          - "ip hold-time eigrp {{ eigrp_config[inventory_hostname].as_number }} 30"
 
     - name: Configure EIGRP stub for spokes (YGN and MDY)
       ios_config:
         lines:
-          - router eigrp {{ eigrp_config[inventory_hostname].as_number }}
-          - eigrp stub connected summary
+          - "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
+          - "eigrp stub connected summary"
       when: eigrp_config[inventory_hostname].is_hub == false
 
     - name: Verify EIGRP configuration (Internal Routes Only)

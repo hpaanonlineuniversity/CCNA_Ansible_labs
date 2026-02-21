@@ -7,7 +7,14 @@ gnome-terminal \
 gnome-terminal \
   --tab --title="Telnet 32783" -- bash -c "telnet 192.168.100.11 32772; exec bash"
 
+#set pcname SVR1
+SVR1> ip 192.168.0.10/24 192.168.0.1
 
+#set pcname client1
+VPCS> ip 192.168.1.10/24 192.168.1.1
+
+#set pcname client2
+VPCS> ip 192.168.2.10/24 192.168.2.1
 
 
 # i have HQ as hub and spoke as YGN and MDY office
