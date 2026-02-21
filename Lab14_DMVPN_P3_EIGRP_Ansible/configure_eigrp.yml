@@ -1,0 +1,141 @@
+---
+- name: Configure EIGRP on MGRE Tunnel between HQ, YGN and MDY
+  hosts: routers
+  gather_facts: no
+  connection: network_cli
+
+  vars:
+    eigrp_config:
+      HQ:
+        as_number: 100
+        network_statements:
+          - network 10.10.10.10 0.0.0.0        # MGRE Tunnel Network
+          - network 192.168.0.1 0.0.0.0       # HQ LAN
+          
+        tunnel_interface: tunnel0
+        lan_interface: GigabitEthernet0/2        # LAN side interface
+        is_hub: true
+        
+      YGN:
+        as_number: 100
+        network_statements:
+          - network 10.10.10.11 0.0.0.0        # MGRE Tunnel Network
+          - network 192.168.1.1 0.0.0.0       # YGN LAN
+          
+        tunnel_interface: tunnel0
+        lan_interface: GigabitEthernet0/2        # LAN side interface
+        is_hub: false
+        
+      MDY:
+        as_number: 100
+        network_statements:
+          - network 10.10.10.12 0.0.0.0        # MGRE Tunnel Network
+          - network 192.168.2.1 0.0.0.0       # MDY LAN
+          
+        tunnel_interface: tunnel0
+        lan_interface: GigabitEthernet0/2        # LAN side interface
+        is_hub: false
+
+  tasks:
+    - name: Configure EIGRP on routers (Internal Networks Only)
+      ios_config:
+        lines:
+          - router eigrp {{ eigrp_config[inventory_hostname].as_number }}
+          {% for network in eigrp_config[inventory_hostname].network_statements %}
+          - {{ network }}
+          {% endfor %}
+          - no auto-summary
+          - passive-interface default
+          - no passive-interface {{ eigrp_config[inventory_hostname].tunnel_interface }}
+
+    - name: Configure EIGRP on Tunnel interface
+      ios_config:
+        lines:
+          - interface {{ eigrp_config[inventory_hostname].tunnel_interface }}
+          - ip bandwidth-percent eigrp {{ eigrp_config[inventory_hostname].as_number }} 50
+          - ip hello-interval eigrp {{ eigrp_config[inventory_hostname].as_number }} 10
+          - ip hold-time eigrp {{ eigrp_config[inventory_hostname].as_number }} 30
+
+    - name: Configure LAN interfaces as passive (for security)
+      ios_config:
+        lines:
+          - interface {{ eigrp_config[inventory_hostname].lan_interface }}
+          - ip bandwidth-percent eigrp {{ eigrp_config[inventory_hostname].as_number }} 50
+        parents: "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
+
+    - name: Enable EIGRP logging
+      ios_config:
+        lines:
+          - router eigrp {{ eigrp_config[inventory_hostname].as_number }}
+          - eigrp log-neighbor-changes
+
+    - name: Configure EIGRP stub for spokes (YGN and MDY)
+      ios_config:
+        lines:
+          - router eigrp {{ eigrp_config[inventory_hostname].as_number }}
+          - eigrp stub connected summary
+      when: eigrp_config[inventory_hostname].is_hub == false
+
+    - name: Create route-map to filter out ISP networks (just in case)
+      ios_config:
+        lines:
+          - route-map NO-ISP deny 10
+          - match ip address 99
+          - route-map NO-ISP permit 20
+          - access-list 99 deny 100.100.0.0 0.0.255.255    # Block all ISP networks
+          - access-list 99 permit any
+        parents: "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
+        # distribute-list route-map NO-ISP in    # Optional - uncomment if needed
+
+    - name: Verify EIGRP configuration (Internal Routes Only)
+      ios_command:
+        commands:
+          - show ip protocols
+          - show ip eigrp neighbors
+          - show ip eigrp topology
+          - show ip route eigrp
+          - show ip route 192.168.0.0 255.255.0.0 longer-prefixes
+      register: eigrp_output
+
+    - name: Display EIGRP status
+      debug:
+        var: eigrp_output.stdout_lines
+
+    - name: Test connectivity to remote LANs
+      ios_command:
+        commands:
+          - ping 192.168.20.1 source 192.168.10.1 repeat 2   # HQ to YGN LAN
+          - ping 192.168.30.1 source 192.168.10.1 repeat 2   # HQ to MDY LAN
+      when: inventory_hostname == "HQ"
+      register: ping_results
+      ignore_errors: yes
+
+    - name: Display ping test results
+      debug:
+        var: ping_results.stdout_lines
+      when: inventory_hostname == "HQ"
+
+    - name: Test spoke-to-spoke connectivity via tunnel
+      ios_command:
+        commands:
+          - ping 192.168.30.1 source 192.168.20.1 repeat 2   # YGN to MDY LAN
+      when: inventory_hostname == "YGN"
+      register: spoke_ping
+      ignore_errors: yes
+
+    - name: Display spoke ping test results
+      debug:
+        var: spoke_ping.stdout_lines
+      when: inventory_hostname == "YGN"
+
+    - name: Verify no ISP routes in routing table
+      ios_command:
+        commands:
+          - show ip route 100.100.0.0 255.255.0.0 longer-prefixes
+      register: isp_routes
+      when: inventory_hostname == "HQ"
+
+    - name: Display ISP route check (should be empty)
+      debug:
+        msg: "ISP Routes in table: {{ isp_routes.stdout_lines | default(['None - Good!']) }}"
+      when: inventory_hostname == "HQ"

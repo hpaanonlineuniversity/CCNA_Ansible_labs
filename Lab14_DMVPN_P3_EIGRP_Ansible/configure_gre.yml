@@ -72,6 +72,7 @@
           - ip nhrp authentication {{ tunnel_info[inventory_hostname].nhrp_auth }}
           - ip nhrp map multicast dynamic
           - ip nhrp redirect
+          - no ip split-horizon eigrp 100
       when: tunnel_info[inventory_hostname].is_hub == true
 
     - name: Configure NHRP on Spokes (YGN and MDY)
