@@ -9,68 +9,63 @@
       HQ:
         as_number: 100
         network_statements:
-          - network 10.10.10.10 0.0.0.0        # MGRE Tunnel Network interface
-          - network 192.168.0.1 0.0.0.0       # HQ LAN interface
-          
+          - network 10.10.10.10 0.0.0.0
+          - network 192.168.0.1 0.0.0.0
         tunnel_interface: tunnel0
-        lan_interface: GigabitEthernet0/2        # LAN side interface
+        lan_interface: GigabitEthernet0/2
         is_hub: true
         
       YGN:
         as_number: 100
         network_statements:
-          - network 10.10.10.11 0.0.0.0        # MGRE Tunnel Network interface
-          - network 192.168.1.1 0.0.0.0       # YGN LAN interface
-          
+          - network 10.10.10.11 0.0.0.0
+          - network 192.168.1.1 0.0.0.0
         tunnel_interface: tunnel0
-        lan_interface: GigabitEthernet0/2        # LAN side interface
+        lan_interface: GigabitEthernet0/2
         is_hub: false
         
       MDY:
         as_number: 100
         network_statements:
-          - network 10.10.10.12 0.0.0.0        # MGRE Tunnel Network interface
-          - network 192.168.2.1 0.0.0.0       # MDY LAN interface
-          
+          - network 10.10.10.12 0.0.0.0
+          - network 192.168.2.1 0.0.0.0
         tunnel_interface: tunnel0
-        lan_interface: GigabitEthernet0/2        # LAN side interface
+        lan_interface: GigabitEthernet0/2
         is_hub: false
 
   tasks:
-    - name: Configure EIGRP on routers (Internal Networks Only)
+    - name: Configure EIGRP on routers
       ios_config:
+        parents: "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
         lines:
-          - "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
-          {% for network in eigrp_config[inventory_hostname].network_statements %}
-          - "{{ network }}"
-          {% endfor %}
+          - "{{ eigrp_config[inventory_hostname].network_statements[0] }}"
+          - "{{ eigrp_config[inventory_hostname].network_statements[1] }}"
           - "no auto-summary"
           - "passive-interface default"
           - "no passive-interface {{ eigrp_config[inventory_hostname].tunnel_interface }}"
 
     - name: Configure EIGRP on Tunnel interface
       ios_config:
+        parents: "interface {{ eigrp_config[inventory_hostname].tunnel_interface }}"
         lines:
-          - "interface {{ eigrp_config[inventory_hostname].tunnel_interface }}"
           - "ip bandwidth-percent eigrp {{ eigrp_config[inventory_hostname].as_number }} 50"
           - "ip hello-interval eigrp {{ eigrp_config[inventory_hostname].as_number }} 10"
           - "ip hold-time eigrp {{ eigrp_config[inventory_hostname].as_number }} 30"
 
-    - name: Configure EIGRP stub for spokes (YGN and MDY)
+    - name: Configure EIGRP stub for spokes
       ios_config:
+        parents: "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
         lines:
-          - "router eigrp {{ eigrp_config[inventory_hostname].as_number }}"
           - "eigrp stub connected summary"
       when: eigrp_config[inventory_hostname].is_hub == false
 
-    - name: Verify EIGRP configuration (Internal Routes Only)
+    - name: Verify EIGRP configuration
       ios_command:
         commands:
           - show ip protocols
           - show ip eigrp neighbors
           - show ip eigrp topology
           - show ip route eigrp
-          - show ip route 192.168.0.0 255.255.0.0 longer-prefixes
       register: eigrp_output
 
     - name: Display EIGRP status
