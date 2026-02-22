@@ -1,0 +1,156 @@
+---
+- name: Configure IPsec (IKEv1) for DMVPN between HQ, YGN and MDY
+  hosts: routers
+  gather_facts: no
+  connection: network_cli
+
+  vars:
+    ipsec_config:
+      HQ:
+        is_hub: true
+        tunnel_interface: tunnel0
+        crypto_isakmp_policy:
+          priority: 10
+          encryption: aes 256
+          hash: sha256
+          authentication: pre-share
+          group: 14
+          lifetime: 86400
+        transform_set:
+          name: TSET
+          esp_encryption: esp-aes 256
+          esp_authentication: esp-sha256-hmac
+          mode: transport
+        ipsec_profile:
+          name: DMVPN-PROFILE
+        isakmp_key:
+          key: dmvpn123456
+          peer_address: 0.0.0.0
+        public_ip: 100.100.10.1
+        
+      YGN:
+        is_hub: false
+        tunnel_interface: tunnel0
+        crypto_isakmp_policy:
+          priority: 10
+          encryption: aes 256
+          hash: sha256
+          authentication: pre-share
+          group: 14
+          lifetime: 86400
+        transform_set:
+          name: TSET
+          esp_encryption: esp-aes 256
+          esp_authentication: esp-sha256-hmac
+          mode: transport
+        ipsec_profile:
+          name: DMVPN-PROFILE
+        isakmp_key:
+          key: dmvpn123456
+          peer_address: 100.100.10.1
+        public_ip: 100.100.20.1
+        
+      MDY:
+        is_hub: false
+        tunnel_interface: tunnel0
+        crypto_isakmp_policy:
+          priority: 10
+          encryption: aes 256
+          hash: sha256
+          authentication: pre-share
+          group: 14
+          lifetime: 86400
+        transform_set:
+          name: TSET
+          esp_encryption: esp-aes 256
+          esp_authentication: esp-sha256-hmac
+          mode: transport
+        ipsec_profile:
+          name: DMVPN-PROFILE
+        isakmp_key:
+          key: dmvpn123456
+          peer_address: 100.100.10.1
+        public_ip: 100.100.30.1
+
+  tasks:
+    - name: Configure ISAKMP Policy (IKEv1)
+      ios_config:
+        parents: "crypto isakmp policy {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.priority }}"
+        lines:
+          - "encryption {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.encryption }}"
+          - "hash {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.hash }}"
+          - "authentication {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.authentication }}"
+          - "group {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.group }}"
+          - "lifetime {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.lifetime }}"
+
+    - name: Configure ISAKMP Key for Hub (HQ)
+      ios_config:
+        lines:
+          - "crypto isakmp key {{ ipsec_config[inventory_hostname].isakmp_key.key }} address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }}"
+      when: ipsec_config[inventory_hostname].is_hub == true
+
+    - name: Configure ISAKMP Key for Spokes (YGN and MDY)
+      ios_config:
+        lines:
+          - "crypto isakmp key {{ ipsec_config[inventory_hostname].isakmp_key.key }} address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }}"
+      when: ipsec_config[inventory_hostname].is_hub == false
+
+    - name: Configure IPsec Transform Set
+      ios_config:
+        parents: "crypto ipsec transform-set {{ ipsec_config[inventory_hostname].transform_set.name }} {{ ipsec_config[inventory_hostname].transform_set.esp_encryption }} {{ ipsec_config[inventory_hostname].transform_set.esp_authentication }}"
+        lines:
+          - "mode {{ ipsec_config[inventory_hostname].transform_set.mode }}"
+
+    - name: Configure IPsec Profile
+      ios_config:
+        parents: "crypto ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
+        lines:
+          - "set transform-set {{ ipsec_config[inventory_hostname].transform_set.name }}"
+          - "set security-association lifetime seconds {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.lifetime }}"
+          - "set pfs group14"
+
+    - name: Apply IPsec Profile to Tunnel Interface
+      ios_config:
+        parents: "interface {{ ipsec_config[inventory_hostname].tunnel_interface }}"
+        lines:
+          - "tunnel protection ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
+
+    - name: Enable IKEv1 Aggressive Mode for Spokes (Optional)
+      ios_config:
+        parents: "interface {{ ipsec_config[inventory_hostname].tunnel_interface }}"
+        lines:
+          - "tunnel key ipsec aggressive-mode"
+      when: ipsec_config[inventory_hostname].is_hub == false
+
+    - name: Verify IKEv1 IPsec Configuration
+      ios_command:
+        commands:
+          - show crypto isakmp policy
+          - show crypto isakmp key
+          - show crypto ipsec transform-set
+          - show crypto ipsec profile
+          - show crypto isakmp sa
+          - show crypto ipsec sa
+          - show crypto session
+      register: ipsec_output
+
+    - name: Display IKEv1 IPsec Configuration Status
+      debug:
+        var: ipsec_output.stdout_lines
+
+    - name: Verify Tunnel Protection and DMVPN Status
+      ios_command:
+        commands:
+          - show interface tunnel0 | include protection
+          - show dmvpn detail
+          - show crypto isakmp peers
+      register: dmvpn_ipsec_output
+
+    - name: Display DMVPN with IKEv1 IPsec Status
+      debug:
+        var: dmvpn_ipsec_output.stdout_lines
+
+    - name: Save Configuration
+      ios_config:
+        save_when: modified
+      when: ansible_network_os == 'ios'
