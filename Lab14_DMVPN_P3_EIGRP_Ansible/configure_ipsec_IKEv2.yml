@@ -1,5 +1,5 @@
 ---
-- name: Configure IPsec for DMVPN between HQ, YGN and MDY
+- name: Configure IPsec (IKEv2) for DMVPN Phase 3 between HQ, YGN and MDY
   hosts: routers
   gather_facts: no
   connection: network_cli
@@ -9,12 +9,14 @@
       HQ:
         is_hub: true
         tunnel_interface: tunnel0
-        crypto_ike_version: 2
-        ike_proposal:
-          name: IKE-PROPOSAL
+        ikev2_proposal:
+          name: IKEV2-PROPOSAL
           encryption: aes-cbc-256
-          hash: sha256
+          integrity: sha256
           group: 14
+        ikev2_policy:
+          name: IKEV2-POLICY
+          proposal: IKEV2-PROPOSAL
           lifetime: 86400
         transform_set:
           name: TSET
@@ -23,20 +25,27 @@
           mode: transport
         ipsec_profile:
           name: DMVPN-PROFILE
-        isakmp_key:
+        ikev2_keyring:
+          name: DMVPN-KEYRING
+          peer_name: DMVPN-PEER
           key: dmvpn123456
           peer_address: 0.0.0.0
+          peer_mask: 0
+        ikev2_profile:
+          name: DMVPN-IKEV2-PROFILE
         public_ip: 100.100.10.1
         
       YGN:
         is_hub: false
         tunnel_interface: tunnel0
-        crypto_ike_version: 2
-        ike_proposal:
-          name: IKE-PROPOSAL
+        ikev2_proposal:
+          name: IKEV2-PROPOSAL
           encryption: aes-cbc-256
-          hash: sha256
+          integrity: sha256
           group: 14
+        ikev2_policy:
+          name: IKEV2-POLICY
+          proposal: IKEV2-PROPOSAL
           lifetime: 86400
         transform_set:
           name: TSET
@@ -45,20 +54,28 @@
           mode: transport
         ipsec_profile:
           name: DMVPN-PROFILE
-        isakmp_key:
+        ikev2_keyring:
+          name: DMVPN-KEYRING
+          peer_name: DMVPN-PEER
           key: dmvpn123456
-          peer_address: 100.100.10.1
+          peer_address: 0.0.0.0
+          peer_mask: 0
+        ikev2_profile:
+          name: DMVPN-IKEV2-PROFILE
+        hub_public_ip: 100.100.10.1
         public_ip: 100.100.20.1
         
       MDY:
         is_hub: false
         tunnel_interface: tunnel0
-        crypto_ike_version: 2
-        ike_proposal:
-          name: IKE-PROPOSAL
+        ikev2_proposal:
+          name: IKEV2-PROPOSAL
           encryption: aes-cbc-256
-          hash: sha256
+          integrity: sha256
           group: 14
+        ikev2_policy:
+          name: IKEV2-POLICY
+          proposal: IKEV2-PROPOSAL
           lifetime: 86400
         transform_set:
           name: TSET
@@ -67,45 +84,55 @@
           mode: transport
         ipsec_profile:
           name: DMVPN-PROFILE
-        isakmp_key:
+        ikev2_keyring:
+          name: DMVPN-KEYRING
+          peer_name: DMVPN-PEER
           key: dmvpn123456
-          peer_address: 100.100.10.1
+          peer_address: 0.0.0.0
+          peer_mask: 0
+        ikev2_profile:
+          name: DMVPN-IKEV2-PROFILE
+        hub_public_ip: 100.100.10.1
         public_ip: 100.100.30.1
 
   tasks:
-    - name: Configure IKE Proposal (ISAKMP Policy)
+    - name: Configure IKEv2 Proposal
       ios_config:
-        parents: "crypto ikev2 proposal {{ ipsec_config[inventory_hostname].ike_proposal.name }}"
+        parents: "crypto ikev2 proposal {{ ipsec_config[inventory_hostname].ikev2_proposal.name }}"
         lines:
-          - "encryption {{ ipsec_config[inventory_hostname].ike_proposal.encryption }}"
-          - "integrity {{ ipsec_config[inventory_hostname].ike_proposal.hash }}"
-          - "group {{ ipsec_config[inventory_hostname].ike_proposal.group }}"
+          - "encryption {{ ipsec_config[inventory_hostname].ikev2_proposal.encryption }}"
+          - "integrity {{ ipsec_config[inventory_hostname].ikev2_proposal.integrity }}"
+          - "group {{ ipsec_config[inventory_hostname].ikev2_proposal.group }}"
 
     - name: Configure IKEv2 Policy
       ios_config:
-        parents: "crypto ikev2 policy IKE-POLICY"
+        parents: "crypto ikev2 policy {{ ipsec_config[inventory_hostname].ikev2_policy.name }}"
         lines:
-          - "proposal {{ ipsec_config[inventory_hostname].ike_proposal.name }}"
+          - "proposal {{ ipsec_config[inventory_hostname].ikev2_policy.proposal }}"
+          - "lifetime {{ ipsec_config[inventory_hostname].ikev2_policy.lifetime }}"
 
     - name: Configure IKEv2 Keyring
       ios_config:
         parents:
-          - "crypto ikev2 keyring DMVPN-KEYRING"
-          - "peer DMVPN-PEER"
+          - "crypto ikev2 keyring {{ ipsec_config[inventory_hostname].ikev2_keyring.name }}"
+          - "peer {{ ipsec_config[inventory_hostname].ikev2_keyring.peer_name }}"
         lines:
-          - "address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }}"
-          - "pre-shared-key {{ ipsec_config[inventory_hostname].isakmp_key.key }}"
+          - "address {{ ipsec_config[inventory_hostname].ikev2_keyring.peer_address }} {{ ipsec_config[inventory_hostname].ikev2_keyring.peer_mask }}"
+          - "pre-shared-key {{ ipsec_config[inventory_hostname].ikev2_keyring.key }}"
 
     - name: Configure IKEv2 Profile
       ios_config:
         parents:
-          - "crypto ikev2 profile DMVPN-IKEV2-PROFILE"
+          - "crypto ikev2 profile {{ ipsec_config[inventory_hostname].ikev2_profile.name }}"
         lines:
-          - "match identity remote address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }}"
+          - "match identity remote address {{ ipsec_config[inventory_hostname].ikev2_keyring.peer_address }} {{ ipsec_config[inventory_hostname].ikev2_keyring.peer_mask }}"
           - "authentication remote pre-share"
           - "authentication local pre-share"
-          - "keyring local DMVPN-KEYRING"
-          - "lifetime {{ ipsec_config[inventory_hostname].ike_proposal.lifetime }}"
+          - "keyring local {{ ipsec_config[inventory_hostname].ikev2_keyring.name }}"
+          - "lifetime {{ ipsec_config[inventory_hostname].ikev2_policy.lifetime }}"
+          - "dpd 10 3 on-demand"
+          - "aaa authorization group psk list default"
+          - "virtual-template 1"
 
     - name: Configure IPsec Transform Set
       ios_config:
@@ -113,13 +140,15 @@
         lines:
           - "mode {{ ipsec_config[inventory_hostname].transform_set.mode }}"
 
-    - name: Configure IPsec Profile
+    - name: Configure IPsec Profile for DMVPN Phase 3
       ios_config:
         parents: "crypto ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
         lines:
           - "set transform-set {{ ipsec_config[inventory_hostname].transform_set.name }}"
-          - "set ikev2-profile DMVPN-IKEV2-PROFILE"
-          - "set security-association lifetime seconds {{ ipsec_config[inventory_hostname].ike_proposal.lifetime }}"
+          - "set ikev2-profile {{ ipsec_config[inventory_hostname].ikev2_profile.name }}"
+          - "set security-association lifetime seconds {{ ipsec_config[inventory_hostname].ikev2_policy.lifetime }}"
+          - "set pfs group14"
+          - "set security-association replay window-size 1024"
 
     - name: Apply IPsec Profile to Tunnel Interface
       ios_config:
@@ -127,7 +156,20 @@
         lines:
           - "tunnel protection ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
 
-    - name: Verify IPsec Configuration
+    - name: Enable IKEv2 Aggressive Mode (Required for Phase 3)
+      ios_config:
+        parents: "crypto ikev2 profile {{ ipsec_config[inventory_hostname].ikev2_profile.name }}"
+        lines:
+          - "match identity remote key-id *"
+          - "dpd 10 3 on-demand"
+
+    - name: Enable Keepalives on Tunnel Interface
+      ios_config:
+        parents: "interface {{ ipsec_config[inventory_hostname].tunnel_interface }}"
+        lines:
+          - "keepalive 10 3"
+
+    - name: Verify IKEv2 IPsec Configuration
       ios_command:
         commands:
           - show crypto ikev2 proposal
@@ -136,27 +178,29 @@
           - show crypto ikev2 profile
           - show crypto ipsec transform-set
           - show crypto ipsec profile
-          - show crypto session
-          - show crypto isakmp sa
+          - show crypto ikev2 sa detailed
           - show crypto ipsec sa
+          - show crypto session
       register: ipsec_output
 
-    - name: Display IPsec Configuration Status
+    - name: Display IKEv2 IPsec Configuration Status
       debug:
         var: ipsec_output.stdout_lines
 
-    - name: Verify Tunnel Protection
+    - name: Verify DMVPN Phase 3 with IKEv2 IPsec Status
       ios_command:
         commands:
           - show interface tunnel0 | include protection
           - show dmvpn detail
+          - show crypto ikev2 peers
+          - show crypto ipsec sa | include protected
       register: dmvpn_ipsec_output
 
-    - name: Display DMVPN with IPsec Status
+    - name: Display DMVPN Phase 3 with IKEv2 IPsec Status
       debug:
         var: dmvpn_ipsec_output.stdout_lines
 
-    #- name: Save Configuration
-    #  ios_config:
-    #    save_when: modified
-    #  when: ansible_network_os == 'ios'
+    - name: Save Configuration
+      ios_config:
+        save_when: modified
+      when: ansible_network_os == 'ios'

@@ -1,5 +1,5 @@
 ---
-- name: Configure IPsec (IKEv1) for DMVPN between HQ, YGN and MDY
+- name: Configure IPsec (IKEv1) for DMVPN Phase 3 between HQ, YGN and MDY
   hosts: routers
   gather_facts: no
   connection: network_cli
@@ -26,6 +26,7 @@
         isakmp_key:
           key: dmvpn123456
           peer_address: 0.0.0.0
+          peer_mask: 0.0.0.0
         public_ip: 100.100.10.1
         
       YGN:
@@ -47,7 +48,9 @@
           name: DMVPN-PROFILE
         isakmp_key:
           key: dmvpn123456
-          peer_address: 100.100.10.1
+          peer_address: 0.0.0.0
+          peer_mask: 0.0.0.0
+        hub_public_ip: 100.100.10.1
         public_ip: 100.100.20.1
         
       MDY:
@@ -69,7 +72,9 @@
           name: DMVPN-PROFILE
         isakmp_key:
           key: dmvpn123456
-          peer_address: 100.100.10.1
+          peer_address: 0.0.0.0
+          peer_mask: 0.0.0.0
+        hub_public_ip: 100.100.10.1
         public_ip: 100.100.30.1
 
   tasks:
@@ -83,17 +88,10 @@
           - "group {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.group }}"
           - "lifetime {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.lifetime }}"
 
-    - name: Configure ISAKMP Key for Hub (HQ)
+    - name: Configure ISAKMP Key for All Routers (0.0.0.0 for all)
       ios_config:
         lines:
-          - "crypto isakmp key {{ ipsec_config[inventory_hostname].isakmp_key.key }} address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }}"
-      when: ipsec_config[inventory_hostname].is_hub == true
-
-    - name: Configure ISAKMP Key for Spokes (YGN and MDY)
-      ios_config:
-        lines:
-          - "crypto isakmp key {{ ipsec_config[inventory_hostname].isakmp_key.key }} address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }}"
-      when: ipsec_config[inventory_hostname].is_hub == false
+          - "crypto isakmp key {{ ipsec_config[inventory_hostname].isakmp_key.key }} address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }} {{ ipsec_config[inventory_hostname].isakmp_key.peer_mask }}"
 
     - name: Configure IPsec Transform Set
       ios_config:
@@ -101,13 +99,14 @@
         lines:
           - "mode {{ ipsec_config[inventory_hostname].transform_set.mode }}"
 
-    - name: Configure IPsec Profile
+    - name: Configure IPsec Profile for DMVPN Phase 3
       ios_config:
         parents: "crypto ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
         lines:
           - "set transform-set {{ ipsec_config[inventory_hostname].transform_set.name }}"
           - "set security-association lifetime seconds {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.lifetime }}"
           - "set pfs group14"
+          - "set security-association replay window-size 1024"
 
     - name: Apply IPsec Profile to Tunnel Interface
       ios_config:
@@ -115,12 +114,17 @@
         lines:
           - "tunnel protection ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
 
-    - name: Enable IKEv1 Aggressive Mode for Spokes (Optional)
+    - name: Enable IKE Aggressive Mode on All Routers (Required for Phase 3)
       ios_config:
         parents: "interface {{ ipsec_config[inventory_hostname].tunnel_interface }}"
         lines:
           - "tunnel key ipsec aggressive-mode"
-      when: ipsec_config[inventory_hostname].is_hub == false
+
+    - name: Enable Keepalives on All Routers
+      ios_config:
+        parents: "interface {{ ipsec_config[inventory_hostname].tunnel_interface }}"
+        lines:
+          - "keepalive 10 3"
 
     - name: Verify IKEv1 IPsec Configuration
       ios_command:
@@ -129,7 +133,7 @@
           - show crypto isakmp key
           - show crypto ipsec transform-set
           - show crypto ipsec profile
-          - show crypto isakmp sa
+          - show crypto isakmp sa detail
           - show crypto ipsec sa
           - show crypto session
       register: ipsec_output
@@ -138,15 +142,16 @@
       debug:
         var: ipsec_output.stdout_lines
 
-    - name: Verify Tunnel Protection and DMVPN Status
+    - name: Verify DMVPN Phase 3 with IPsec Status
       ios_command:
         commands:
           - show interface tunnel0 | include protection
           - show dmvpn detail
           - show crypto isakmp peers
+          - show crypto ipsec sa | include protected
       register: dmvpn_ipsec_output
 
-    - name: Display DMVPN with IKEv1 IPsec Status
+    - name: Display DMVPN Phase 3 with IPsec Status
       debug:
         var: dmvpn_ipsec_output.stdout_lines
 
