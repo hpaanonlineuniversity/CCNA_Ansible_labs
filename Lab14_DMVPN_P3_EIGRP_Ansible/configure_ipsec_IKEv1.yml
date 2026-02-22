@@ -114,11 +114,10 @@
         lines:
           - "tunnel protection ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
 
-    - name: Enable IKE Aggressive Mode
+    - name: Configure ISAKMP Key with Aggressive Mode (for IOS 15.4)
       ios_config:
-        parents: "crypto isakmp policy {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.priority }}"
         lines:
-          - "mode aggressive"
+          - "crypto isakmp key {{ ipsec_config[inventory_hostname].isakmp_key.key }} address {{ ipsec_config[inventory_hostname].isakmp_key.peer_address }} {{ ipsec_config[inventory_hostname].isakmp_key.peer_mask }} aggressive"
 
     - name: Enable Keepalives on All Routers
       ios_config:
