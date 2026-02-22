@@ -156,12 +156,12 @@
         lines:
           - "tunnel protection ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
 
-    - name: Enable IKEv2 Aggressive Mode (Required for Phase 3)
-      ios_config:
-        parents: "crypto ikev2 profile {{ ipsec_config[inventory_hostname].ikev2_profile.name }}"
-        lines:
-          - "match identity remote key-id *"
-          - "dpd 10 3 on-demand"
+    #- name: Enable IKEv2 Aggressive Mode (Required for Phase 3)
+    #  ios_config:
+    #    parents: "crypto ikev2 profile {{ ipsec_config[inventory_hostname].ikev2_profile.name }}"
+    #    lines:
+    #      - "match identity remote key-id *"
+    #      - "dpd 10 3 on-demand"
 
     - name: Enable Keepalives on Tunnel Interface
       ios_config:

@@ -20,6 +20,8 @@ and run ansible playbook with the following order, Thank you!!!
 01.    configure_gre.yml
 02.    configure_eigrp.yml
 03.    configure_ipsec_ILEv1.yml or configure_ipsec_ILEv2.yml  
+
+Note. IKEv2 is no support in eve-ng IOS version 15.4!!!!!
 ===========================================================================================================
 
 ပထမဆုံးအနေနဲ့၊ YGN or MDY router ရဲ့ G0/0 interface များကို IP address သတ်မှတ်ပါ။ ( check ip address from image)
@@ -40,3 +42,5 @@ and run ansible playbook with the following order, Thank you!!!
 01.    configure_gre.yml
 02.    configure_eigrp.yml
 03.    configure_ipsec_ILEv1.yml or configure_ipsec_ILEv2.yml  
+
+Note. IKEv2 is no support in eve-ng IOS version 15.4!!!!!
