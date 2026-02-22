@@ -114,11 +114,11 @@
         lines:
           - "tunnel protection ipsec profile {{ ipsec_config[inventory_hostname].ipsec_profile.name }}"
 
-    - name: Enable IKE Aggressive Mode on All Routers (Required for Phase 3)
+    - name: Enable IKE Aggressive Mode
       ios_config:
-        parents: "interface {{ ipsec_config[inventory_hostname].tunnel_interface }}"
+        parents: "crypto isakmp policy {{ ipsec_config[inventory_hostname].crypto_isakmp_policy.priority }}"
         lines:
-          - "tunnel key ipsec aggressive-mode"
+          - "mode aggressive"
 
     - name: Enable Keepalives on All Routers
       ios_config:
@@ -155,7 +155,7 @@
       debug:
         var: dmvpn_ipsec_output.stdout_lines
 
-    - name: Save Configuration
-      ios_config:
-        save_when: modified
-      when: ansible_network_os == 'ios'
+    #- name: Save Configuration
+    #  ios_config:
+    #    save_when: modified
+    #  when: ansible_network_os == 'ios'
